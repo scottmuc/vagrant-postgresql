@@ -1,0 +1,18 @@
+SITE
+  remote: http://community.opscode.com/api/v1
+  specs:
+    apt (1.4.2)
+    openssl (1.0.0)
+
+GIT
+  remote: git://github.com/scottmuc/chef-postgresql.git
+  ref: master
+  sha: d37fd3b53ed7aa3b0609051941bc33b9b9c674d5
+  specs:
+    postgresql (0.99.6)
+      apt (>= 0.0.0)
+      openssl (>= 0.0.0)
+
+DEPENDENCIES
+  postgresql (>= 0)
+
