@@ -1,6 +1,5 @@
-#!/usr/bin/env ruby
-#^syntax detection
-
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
 site 'http://community.opscode.com/api/v1'
 
 cookbook 'postgresql',
