@@ -12,6 +12,7 @@ Vagrant::Config.run do |config|
     cfg.vm.provision :chef_solo do |chef|
       chef.cookbooks_path = [ File.join(HERE, 'cookbooks'), File.join(HERE, 'site-cookbooks') ]
       chef.add_recipe("apt")
+      chef.add_recipe("build-essential")
       chef.add_recipe("postgresql::apt_postgresql_ppa")
       chef.add_recipe("postgresql::server")
       chef.add_recipe("phppgadmin")
