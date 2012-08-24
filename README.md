@@ -5,9 +5,11 @@ ubuntu 10.04 server running postgresql and phppgadmin.
 
 To get the server going execute the following in the directory:
 
-    bundle install
-    bundle exec librarian-chef install
-    bundle exec vagrant up
+    script/database up
+
+To shutdown the database server do the following:
+
+    script/database down
 
 Then you should be able to navigate to http://localhost:8080/phppgadmin and log
 into the database server using the username *postgres* and password *password*

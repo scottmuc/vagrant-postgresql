@@ -1,0 +1,30 @@
+#!/bin/bash
+
+COMMAND=$1
+
+function main() {
+  case "$COMMAND" in
+  up) up
+      ;;
+  down) down
+      ;;
+  *) echo "invalid command: script/database up|down"
+      ;;
+  esac
+}
+
+function install_dependencies() {
+  bundle install
+  bundle exec librarian-chef install
+}
+
+function up() {
+  install_dependencies
+  bundle exec vagrant up
+}
+
+function down() {
+  bundle exec vagrant suspend
+}
+
+main
