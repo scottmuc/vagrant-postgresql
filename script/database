@@ -8,23 +8,23 @@ function main() {
       ;;
   down) down
       ;;
-  *) echo "invalid command: script/database up|down"
+  destroy) destroy
+      ;;
+  *) echo "invalid command: script/database up|down|destroy"
       ;;
   esac
 }
 
-function install_dependencies() {
-  bundle install
-  bundle exec librarian-chef install
-}
-
 function up() {
-  install_dependencies
-  bundle exec vagrant up
+  vagrant up
 }
 
 function down() {
-  bundle exec vagrant suspend
+  vagrant suspend
+}
+
+function destroy() {
+  vagrant destroy -f
 }
 
 main
