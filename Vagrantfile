@@ -3,30 +3,29 @@
 HERE = File.join(File.dirname(__FILE__))
 
 Vagrant::Config.run do |config|
-  config.vm.box     = "lucid64"
-  config.vm.box_url = "http://files.vagrantup.com/lucid64.box"
+  config.vm.box     = "precise64"
+  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
   config.vm.define "database" do |cfg|
     cfg.vm.forward_port 5432, 5432
     cfg.vm.forward_port 80, 8080
     cfg.vm.provision :chef_solo do |chef|
-      chef.cookbooks_path = [ File.join(HERE, 'cookbooks'), File.join(HERE, 'site-cookbooks') ]
+      chef.cookbooks_path = File.join(HERE, 'cookbooks')
       chef.add_recipe("apt")
-      chef.add_recipe("build-essential")
-      chef.add_recipe("postgresql::apt_postgresql_ppa")
       chef.add_recipe("postgresql::server")
       chef.add_recipe("phppgadmin")
       chef.json = {
         :postgresql => {
           :version  => "9.1",
           :listen_addresses => "*",
-          :hba => [
-            { :method => "trust", :address => "0.0.0.0/0" },
-            { :method => "trust", :address => "::1/0" },
+          :pg_hba => [
+            "host all all 0.0.0.0/0 md5",
+            "host all all ::1/0 md5",
           ],
-          :password => {
-            :postgres => "password"
-          }
+          :users => [
+            { :username => "postgres", :password => "password",
+              :superuser => true, :login => true, :createdb => true }
+          ],
         }
       }
     end
