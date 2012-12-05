@@ -1,7 +1,16 @@
-# Vagrant database server demo
+# Postgresql database server whenever you need one
+
+## Dependencies
+
+You'll need to have the following tools installed for this to work
+
+* [VirtualBoxa](https://www.virtualbox.org/wiki/Downloads)
+* [Vagrant](http://vagrantup.com/)
+
+## Instructions
 
 This repo contains everything necessary to stand up a local instance of an
-ubuntu 10.04 server running postgresql and phppgadmin.
+ubuntu 12.04 server running postgresql and phppgadmin.
 
 To get the server going execute the following in the directory:
 
@@ -10,6 +19,10 @@ To get the server going execute the following in the directory:
 To shutdown the database server do the following:
 
     script/database down
+
+To destroy the database server do the following (this will remove all data):
+
+    script/database destroy
 
 Then you should be able to navigate to http://localhost:8080/phppgadmin and log
 into the database server using the username *postgres* and password *password*
