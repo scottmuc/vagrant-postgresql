@@ -4,7 +4,7 @@
 
 You'll need to have the following tools installed for this to work
 
-* [VirtualBoxa](https://www.virtualbox.org/wiki/Downloads)
+* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
 * [Vagrant](http://vagrantup.com/)
 
 ## Instructions
