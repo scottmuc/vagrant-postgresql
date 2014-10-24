@@ -5,9 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-    config.vm.box          = "precise64"
-    config.vm.box_url      = "http://files.vagrantup.com/precise64.box"
-    config.vm.boot_timeout = 300
+    config.vm.box          = "ubuntu/trusty64"
 
     config.vm.define "database" do |database|
 
@@ -16,20 +14,30 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
         database.vm.provision :chef_solo do |chef|
             chef.cookbooks_path = File.join(File.dirname(__FILE__), 'cookbooks')
-            chef.add_recipe "apt"
             chef.add_recipe "postgresql::server"
             chef.add_recipe "phppgadmin"
             chef.json = {
                 :postgresql => {
-                    :version  => "9.1",
-                    :listen_addresses => "*",
+                    :version  => "9.3",
+                    :password => {
+                      :postgres => "password",
+                    },
+                    :config => {
+                      :listen_addresses => "*",
+                    },
                     :pg_hba => [
-                        "host all all 0.0.0.0/0 md5",
-                        "host all all ::1/0 md5",
-                    ],
-                    :users => [
-                        { :username => "postgres", :password => "password",
-                          :superuser => true, :login => true, :createdb => true }
+                        { :type => 'host',
+                          :db   => 'all',
+                          :user => 'all',
+                          :addr => '0.0.0.0/0',
+                          :method => 'md5',
+                        },
+                        { :type => 'host',
+                          :db   => 'all',
+                          :user => 'all',
+                          :addr => '::1/0',
+                          :method => 'md5',
+                        },
                     ],
                 }
             }
