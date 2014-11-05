@@ -33,6 +33,12 @@ client on your host operating system).
     psql -h localhost -U postgres --password
     enter password: password
 
+## Customisations
+
+You'll need to know a little bit about chef, but if you're feeling up for it,
+you can tweak `config.yaml`. It's essentially the node attributes that will
+be loaded by chef when performing the chef execution.
+
 ## Troubleshooting
 
 This vagrant box takes ports 5432 and 8080 so if you have processes listening

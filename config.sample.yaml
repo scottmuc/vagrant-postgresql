@@ -1,0 +1,22 @@
+version: 1
+
+postgresql:
+  version: 9.3
+  password:
+    postgres: password
+  config:
+    listen_addresses: '*'
+  pg_hba:
+    -
+      type: 'host'
+      db:   'all'
+      user: 'all'
+      addr: '0.0.0.0/0'
+      method: 'md5'
+    -
+      type: 'host'
+      db:   'all'
+      user: 'all'
+      addr: '::1/0'
+      method: 'md5'
+

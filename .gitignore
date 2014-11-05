@@ -1,1 +1,5 @@
+# This directory is workspace specific
 .vagrant
+
+# Shouldn't ever commit your custom config.yaml
+config.yaml
