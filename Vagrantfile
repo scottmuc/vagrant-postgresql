@@ -27,9 +27,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         database.vm.provision :chef_solo do |chef|
             chef.cookbooks_path = File.join(File.dirname(__FILE__), 'cookbooks')
             chef.add_recipe "postgresql::server"
-            # currently not working because it's failing to download some
-            # php dependencies
-            #chef.add_recipe "phppgadmin"
             chef.json = read_user_json
         end
     end

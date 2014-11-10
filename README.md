@@ -10,7 +10,7 @@ You'll need to have the following tools installed for this to work
 ## Instructions
 
 This repo contains everything necessary to stand up a local instance of an
-ubuntu 12.04 server running postgresql and phppgadmin.
+ubuntu 14.04 server running postgresql.
 
 To get the server going execute the following in the directory:
 
@@ -23,9 +23,6 @@ To shutdown the database server do the following:
 To destroy the database server do the following (this will remove all data):
 
     script/database destroy
-
-Then you should be able to navigate to http://localhost:8080/phppgadmin and log
-into the database server using the username *postgres* and password *password*
 
 From a terminal you can also start a shell (given that you have the postgresql
 client on your host operating system).
@@ -41,6 +38,6 @@ be loaded by chef when performing the chef execution.
 
 ## Troubleshooting
 
-This vagrant box takes ports 5432 and 8080 so if you have processes listening
-on those ports then things might not work.
+This vagrant box takes port 5432 so if you have processes listening on those
+ports then things might not work.
 
