@@ -1,459 +1,431 @@
-Description
-===========
+# PostgreSQL cookbook
+
+[![Cookbook Version](https://img.shields.io/cookbook/v/postgresql.svg)](https://supermarket.chef.io/cookbooks/postgresql)
+[![Build Status](https://img.shields.io/circleci/project/github/sous-chefs/postgresql/master.svg)](https://circleci.com/gh/sous-chefs/postgresql)
+[![OpenCollective](https://opencollective.com/sous-chefs/backers/badge.svg)](#backers)
+[![OpenCollective](https://opencollective.com/sous-chefs/sponsors/badge.svg)](#sponsors)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Installs and configures PostgreSQL as a client or a server.
 
-Requirements
-============
+## Maintainers
 
-## Platforms
+This cookbook is maintained by the Sous Chefs. The Sous Chefs are a community of Chef cookbook maintainers working together to maintain important cookbooks. If you’d like to know more please visit [sous-chefs.org](https://sous-chefs.org/) or come chat with us on the Chef Community Slack in [#sous-chefs](https://chefcommunity.slack.com/messages/C2V7B88SF).
 
-* Debian, Ubuntu
-* Red Hat/CentOS/Scientific (6.0+ required) - "EL6-family"
-* Fedora
-* SUSE
+## Upgrading
 
-Tested on:
+If you are wondering where all the recipes went in v7.0+, or how on earth I use this new cookbook please see upgrading.md for a full description.
 
-* Ubuntu 10.04, 11.10, 12.04, 14.04
-* Red Hat 6.1, Scientific 6.1, CentOS 6.3
+## Requirements
 
-## Cookbooks
+### Platforms
 
-Requires Opscode's `openssl` cookbook for secure password generation.
+- Amazon Linux
+- Debian 7+
+- Ubuntu 14.04+
+- Red Hat/CentOS/Scientific 6+
 
-Requires a C compiler and development headers in order to build the
-`pg` RubyGem to provide Ruby bindings in the `ruby` recipe.
+### PostgreSQL version
 
-Opscode's `build-essential` cookbook provides this functionality on
-Debian, Ubuntu, and EL6-family.
+We follow the currently supported versions listed on <https://www.postgresql.org/support/versioning/>
 
-While not required, Opscode's `database` cookbook contains resources
-and providers that can interact with a PostgreSQL database. This
-cookbook is a dependency of database.
+### Chef
 
-Attributes
-==========
+- Chef 13.8+
 
-The following attributes are set based on the platform, see the
-`attributes/default.rb` file for default values.
+### Cookbook Dependencies
 
-* `node['postgresql']['version']` - version of postgresql to manage
-* `node['postgresql']['dir']` - home directory of where postgresql
-  data and configuration lives.
+None.
 
-* `node['postgresql']['client']['packages']` - An array of package names
-  that should be installed on "client" systems.
-* `node['postgresql']['server']['packages']` - An array of package names
-  that should be installed on "server" systems.
-* `node['postgresql']['server']['config_change_notify']` - Type of
-  notification triggered when a config file changes.
-* `node['postgresql']['contrib']['packages']` - An array of package names
-  that could be installed on "server" systems for useful sysadmin tools.
+## Resources
 
-* `node['postgresql']['enable_pgdg_apt']` - Whether to enable the apt repo
-  by the PostgreSQL Global Development Group, which contains newer versions
-  of PostgreSQL.
+### postgresql_client_install
 
-* `node['postgresql']['enable_pgdg_yum']` - Whether to enable the yum repo
-  by the PostgreSQL Global Development Group, which contains newer versions
-  of PostgreSQL.
+This resource installs PostgreSQL client packages.
 
-* `node['postgresql']['initdb_locale']` - Sets the default locale for the
-  database cluster. If this attribute is not specified, the locale is
-  inherited from the environment that initdb runs in. Sometimes you must
-  have a system locale that is not what you want for your database cluster,
-  and this attribute addresses that scenario. Valid only for EL-family
-  distros (RedHat/Centos/etc.).
+#### Actions
 
-The following attributes are generated in
-`recipe[postgresql::server]`.
+- `install` - (default) Install client packages
 
-* `node['postgresql']['password']['postgres']` - randomly generated
-  password by the `openssl` cookbook's library.
-  (TODO: This is broken, as it disables the password.)
+#### Properties
 
-Configuration
--------------
+Name                | Types             | Description                                                   | Default                                   | Required?
+------------------- | ----------------- | ------------------------------------------------------------- | ----------------------------------------- | ---------
+`version`           | String            | Version of PostgreSQL to install                              | '9.6'                                     | no
+`setup_repo`        | Boolean           | Define if you want to add the PostgreSQL repo                 | true                                      | no
+`hba_file`          | String            |                                                               | `#{conf_dir}/main/pg_hba.conf`            | no
+`ident_file`        | String            |                                                               | `#{conf_dir}/main/pg_ident.conf`          | no
+`external_pid_file` | String            |                                                               | `/var/run/postgresql/#{version}-main.pid` | no
+`password`          | String, nil       | Pass in a password, or have the cookbook generate one for you | random string                             | no
 
-The `postgresql.conf` and `pg_hba.conf` files are dynamically
-generated from attributes. Each key in `node['postgresql']['config']`
-is a postgresql configuration directive, and will be rendered in the
-config file. For example, the attribute:
+#### Examples
 
-    node['postgresql']['config']['listen_addresses'] = 'localhost'
+To install version 9.5:
 
-Will result in the following line in the `postgresql.conf` file:
+```ruby
+postgresql_client_install 'My PostgreSQL Client install' do
+  version '9.5'
+end
+```
 
-    listen_addresses = 'localhost'
+### postgresql_server_install
 
-The attributes file contains default values for Debian and RHEL
-platform families (per the `node['platform_family']`). These defaults
-have disparity between the platforms because they were originally
-extracted from the postgresql.conf files in the previous version of
-this cookbook, which differed in their default config. The resulting
-configuration files will be the same as before, but the content will
-be dynamically rendered from the attributes. The helpful commentary
-will no longer be present. You should consult the PostgreSQL
-documentation for specific configuration details.
+This resource installs PostgreSQL client and server packages.
 
-See __Recipes__ `config_initdb` and `config_pgtune` below to
-auto-generate many postgresql.conf settings.
+#### Actions
 
-For values that are "on" or "off", they should be specified as literal
-`true` or `false`. String values will be used with single quotes. Any
-configuration option set to the literal `nil` will be skipped
-entirely. All other values (e.g., numeric literals) will be used as
-is. So for example:
+- `install` - (default) Install client and server packages
+- `create` - Initialize the database
 
-    node.default['postgresql']['config']['logging_collector'] = true
-    node.default['postgresql']['config']['datestyle'] = 'iso, mdy'
-    node.default['postgresql']['config']['ident_file'] = nil
-    node.default['postgresql']['config']['port'] = 5432
+#### Properties
 
-Will result in the following config lines:
+Name                | Types           | Description                                   | Default                                            | Required?
+------------------- | --------------- | --------------------------------------------- | -------------------------------------------------- | ---------
+`version`           | String          | Version of PostgreSQL to install              | '9.6'                                              | no
+`setup_repo`        | Boolean         | Define if you want to add the PostgreSQL repo | true                                               | no
+`hba_file`          | String          | Path of pg_hba.conf file                      | `<default_os_path>/pg_hba.conf'`                   | no
+`ident_file`        | String          | Path of pg_ident.conf file                    | `<default_os_path>/pg_ident.conf`                  | no
+`external_pid_file` | String          | Path of PID file                              | `/var/run/postgresql/<version>-main.pid</version>` | no
+`password`          | String, nil     | Set PostgreSQL user password                  | 'generate'                                         | no
+`port`              | Integer         | Set listen port of PostgreSQL service         | 5432                                               | no
+`initdb_locale`     | String          | Locale to initialise the database with        | 'C'                                                | no
 
-    logging_collector = 'on'
-    datestyle = 'iso,mdy'
-    port = 5432
+#### Examples
 
-(no line printed for `ident_file` as it is `nil`)
+To install PostgreSQL server, set your own postgres password using non-default service port.
 
-Note that the `unix_socket_directory` configuration was renamed to
-`unix_socket_directories` in Postgres 9.3 so make sure to use the
-`node['postgresql']['unix_socket_directories']` attribute instead of
-`node['postgresql']['unix_socket_directory']`.
+```ruby
+postgresql_server_install 'My PostgreSQL Server install' do
+  action :install
+end
 
-The `pg_hba.conf` file is dynamically generated from the
-`node['postgresql']['pg_hba']` attribute. This attribute must be an
-array of hashes, each hash containing the authorization data. As it is
-an array, you can append to it in your own recipes. The hash keys in
-the array must be symbols. Each hash will be written as a line in
-`pg_hba.conf`. For example, this entry from
-`node['postgresql']['pg_hba']`:
+postgresql_server_install 'Setup my PostgreSQL 9.6 server' do
+  password 'MyP4ssw0rd'
+  port 5433
+  action :create
+end
+```
 
-    [{:comment => '# Optional comment',
-    :type => 'local', :db => 'all', :user => 'postgres', :addr => nil, :method => 'md5'}]
-
-Will result in the following line in `pg_hba.conf`:
-
-    # Optional comment
-    local   all             postgres                                md5
-
-Use `nil` if the CIDR-ADDRESS should be empty (as above).
-Don't provide a comment if none is desired in the `pg_hba.conf` file.
-
-Note that the following authorization rule is supplied automatically by
-the cookbook template. The cookbook needs this to execute SQL in the
-PostgreSQL server without supplying the clear-text password (which isn't
-known by the cookbook). Therefore, your `node['postgresql']['pg_hba']`
-attributes don't need to specify this authorization rule:
-
-    # "local" is for Unix domain socket connections only
-    local   all             all                                     ident
-
-(By the way, the template uses `peer` instead of `ident` for PostgreSQL-9.1
-and above, which has the same effect.)
-
-Recipes
-=======
-
-default
--------
-
-Includes the client recipe.
-
-client
-------
-
-Installs the packages defined in the
-`node['postgresql']['client']['packages']` attribute.
-
-ruby
-----
-
-**NOTE** This recipe may not currently work when installing Chef with
-  the
-  ["Omnibus" full stack installer](http://opscode.com/chef/install) on
-  some platforms due to an incompatibility with OpenSSL. See
-  [COOK-1406](http://tickets.opscode.com/browse/COOK-1406). You can
-  build from source into the Chef omnibus installation to work around
-  this issue.
-
-Install the `pg` gem under Chef's Ruby environment so it can be used
-in other recipes. The build-essential packages and postgresql client
-packages will be installed during the compile phase, so that the
-native extensions of `pg` can be compiled.
-
-server
-------
-
-Includes the `server_debian` or `server_redhat` recipe to get the
-appropriate server packages installed and service managed. Also
-manages the configuration for the server:
-
-* generates a strong default password (via `openssl`) for `postgres`
-  (TODO: This is broken, as it disables the password.)
-* sets the password for postgres
-* manages the `postgresql.conf` file.
-* manages the `pg_hba.conf` file.
-
-server\_debian
---------------
-
-Installs the postgresql server packages and sets up the service. You
-should include the `postgresql::server` recipe, which will include
-this on Debian platforms.
-
-server\_redhat
---------------
-
-Manages the postgres user and group (with UID/GID 26, per RHEL package
-conventions), installs the postgresql server packages, initializes the
-database, and manages the postgresql service. You should include the
-`postgresql::server` recipe, which will include this on RHEL/Fedora
-platforms.
-
-config\_initdb
---------------
-
-Takes locale and timezone settings from the system configuration.
-This recipe creates `node.default['postgresql']['config']` attributes
-that conform to the system's locale and timezone. In addition, this
-recipe creates the same error reporting and logging settings that
-`initdb` provided: a rotation of 7 days of log files named
-postgresql-Mon.log, etc.
-
-The default attributes created by this recipe are easy to override with
-normal attributes because of Chef attribute precedence. For example,
-suppose a DBA wanted to keep log files indefinitely, rolling over daily
-or when growing to 10MB. The Chef installation could include the
-`postgresql::config_initdb` recipe for the locale and timezone settings,
-but customize the logging settings with these node JSON attributes:
-
-    "postgresql": {
-      "config": {
-        "log_rotation_age": "1d",
-        "log_rotation_size": "10MB",
-        "log_filename": "postgresql-%Y-%m-%d_%H%M%S.log"
-      }
-    }
-
-Credits: This `postgresql::config_initdb` recipe is based on algorithms
-in the [source code](http://doxygen.postgresql.org/initdb_8c_source.html)
-for the PostgreSQL `initdb` utility.
-
-config\_pgtune
---------------
-
-Performance tuning.
-Takes the wimpy default postgresql.conf and expands the database server
-to be as powerful as the hardware it's being deployed on. This recipe
-creates a baseline configuration of `node.default['postgresql']['config']`
-attributes in the right general range for a dedicated Postgresql system.
-Most installations won't need additional performance tuning.
-
-The only decision you need to make is to choose a `db_type` from the
-following database workloads. (See the recipe code comments for more
-detailed descriptions.)
-
- * "dw" -- Data Warehouse
- * "oltp" -- Online Transaction Processing
- * "web" -- Web Application
- * "mixed" -- Mixed DW and OLTP characteristics
- * "desktop" -- Not a dedicated database
-
-This recipe uses a performance model with three input parameters.
-These node attributes are completely optional, but it is obviously
-important to choose the `db_type` correctly:
-
- * `node['postgresql']['config_pgtune']['db_type']` --
-   Specifies database type from the list of five choices above.
-   If not specified, the default is "mixed".
-
- * `node['postgresql']['config_pgtune']['max_connections']` --
-   Specifies maximum number of connections expected.
-   If not specified, it depends on database type:
-   "web":200, "oltp":300, "dw":20, "mixed":80, "desktop":5
-
- * `node['postgresql']['config_pgtune']['total_memory']` --
-   Specifies total system memory in kB. (E.g., "49416564kB".)
-   If not specified, it will be taken from Ohai automatic attributes.
-   This could be used to tune a system that isn't a dedicated database.
-
-The default attributes created by this recipe are easy to override with
-normal attributes because of Chef attribute precedence. For example, if
-you are running application benchmarks to try different buffer cache
-sizes, you would experiment with this node JSON attribute:
-
-    "postgresql": {
-      "config": {
-        "shared_buffers": "3GB"
-      }
-    }
-
-Note that the recipe uses `max_connections` in its computations. If
-you want to override that setting, you should specify
-`node['postgresql']['config_pgtune']['max_connections']` instead of
-`node['postgresql']['config']['max_connections']`.
-
-Credits: This `postgresql::config_pgtune` recipe is based on the
-[pgtune python script](https://github.com/gregs1104/pgtune)
-developed by
-[Greg Smith](http://notemagnet.blogspot.com/2008/11/automating-initial-postgresqlconf.html)
-and
-[other pgsql-hackers](http://www.postgresql.org/message-id/491C6CDC.8090506@agliodbs.com).
-
-contrib
--------
-
-Installs the packages defined in the
-`node['postgresql']['contrib']['packages']` attribute. The contrib
-directory of the PostgreSQL distribution includes porting tools,
-analysis utilities, and plug-in features that database engineers often
-require. Some (like `pgbench`) are executable. Others (like
-`pg_buffercache`) would need to be installed into the database.
-
-Also installs any contrib module extensions defined in the
-`node['postgresql']['contrib']['extensions']` attribute. These will be
-available in any subsequently created databases in the cluster, because
-they will be installed into the `template1` database using the
-`CREATE EXTENSION` command. For example, it is often necessary/helpful
-for problem troubleshooting and maintenance planning to install the
-views and functions in these [standard instrumentation extensions]
-(http://www.postgresql.org/message-id/flat/4DC32600.6080900@pgexperts.com#4DD3D6C6.5060006@2ndquadrant.com):
-
-    node['postgresql']['contrib']['extensions'] = [
-      "pageinspect",
-      "pg_buffercache",
-      "pg_freespacemap",
-      "pgrowlocks",
-      "pg_stat_statements",
-      "pgstattuple"
-    ]
-
-Note that the `pg_stat_statements` view only works if `postgresql.conf`
-loads its shared library, which can be done with this node attribute:
-
-    node['postgresql']['config']['shared_preload_libraries'] = 'pg_stat_statements'
-
-apt\_pgdg\_postgresql
-----------------------
-
-Enables the PostgreSQL Global Development Group yum repository
-maintained by Devrim G&#252;nd&#252;z for updated PostgreSQL packages.
-(The PGDG is the groups that develops PostgreSQL.)
-Automatically included if the `node['postgresql']['enable_pgdg_apt']`
-attribute is true. Also set the
-`node['postgresql']['client']['packages']` and
-`node['postgresql']['server]['packages']` to the list of packages to
-use from this repository, and set the `node['postgresql']['version']`
-attribute to the version to use (e.g., "9.2").
-
-yum\_pgdg\_postgresql
----------------------
-
-Enables the PostgreSQL Global Development Group yum repository
-maintained by Devrim G&#252;nd&#252;z for updated PostgreSQL packages.
-(The PGDG is the groups that develops PostgreSQL.)
-Automatically included if the `node['postgresql']['enable_pgdg_yum']`
-attribute is true. Also use `override_attributes` to set a number of
-values that will need to have embedded version numbers. For example:
-
-    node['postgresql']['enable_pgdg_yum'] = true
-    node['postgresql']['version'] = "9.2"
-    node['postgresql']['dir'] = "/var/lib/pgsql/9.2/data"
-    node['postgresql']['client']['packages'] = ["postgresql92", "postgresql92-devel"]
-    node['postgresql']['server']['packages'] = ["postgresql92-server"]
-    node['postgresql']['server']['service_name'] = "postgresql-9.2"
-    node['postgresql']['contrib']['packages'] = ["postgresql92-contrib"]
-
-You may set `node['postgresql']['pgdg']['repo_rpm_url']` attributes
-to pick up recent [PGDG repo packages](http://yum.postgresql.org/repopackages.php).
-
-Resources/Providers
-===================
-
-See the [database](http://community.opscode.com/cookbooks/database)
-for resources and providers that can be used for managing PostgreSQL
-users and databases.
-
-Usage
-=====
-
-On systems that need to connect to a PostgreSQL database, add to a run
-list `recipe[postgresql]` or `recipe[postgresql::client]`.
-
-On systems that should be PostgreSQL servers, use
-`recipe[postgresql::server]` on a run list. This recipe does set a
-password for the `postgres` user.
-If you're using `chef server`, if the attribute
-`node['postgresql']['password']['postgres']` is not found,
-the recipe generates a random password and performs a node.save.
-(TODO: This is broken, as it disables the password.)
-If you're using `chef-solo`, you'll need
-to set the attribute `node['postgresql']['password']['postgres']` in
-your node's `json_attribs` file or in a role.
-
-On Debian family systems, SSL will be enabled, as the packages on
-Debian/Ubuntu also generate the SSL certificates. If you use another
-platform and wish to use SSL in postgresql, then generate your SSL
-certificates and distribute them in your own cookbook, and set the
-`node['postgresql']['config']['ssl']` attribute to true in your
-role/cookboook/node.
-
-On server systems, the postgres server is restarted when a configuration
-file changes.  This can be changed to reload only by setting the
-following attribute:
-
-    node['postgresql']['server']['config_change_notify'] = :reload
-
-Chef Solo Note
-==============
-
-The following node attribute is stored on the Chef Server when using
-`chef-client`. Because `chef-solo` does not connect to a server or
-save the node object at all, to have the password persist across
-`chef-solo` runs, you must specify them in the `json_attribs` file
-used. For Example:
-
-    {
-      "postgresql": {
-        "password": {
-          "postgres": "iloverandompasswordsbutthiswilldo"
-        }
-      },
-      "run_list": ["recipe[postgresql::server]"]
-    }
-
-That should actually be the "encrypted password" instead of cleartext,
-so you should generate it as an md5 hash using the PostgreSQL algorithm.
-
-* You could copy the md5-hashed password from an existing postgres
-database if you have `postgres` access and want to use the same password:<br>
-`select * from pg_shadow where usename='postgres';`
-* You can run this from any postgres database session to use a new password:<br>
-`select 'md5'||md5('iloverandompasswordsbutthiswilldo'||'postgres');`
-* You can run this from a linux commandline:<br>
-`echo -n 'iloverandompasswordsbutthiswilldo''postgres' | openssl md5 | sed -e 's/.* /md5/'`
-
-License and Author
-==================
-
-- Author:: Joshua Timberman (<joshua@opscode.com>)
-- Author:: Lamont Granquist (<lamont@opscode.com>)
-- Author:: Chris Roberts (<chrisroberts.code@gmail.com>)
-- Author:: David Crane (<davidc@donorschoose.org>)
-- Author:: Aaron Baer (<aaron@hw-ops.com>)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+#### Known issues
+
+On some platforms (e.g. Ubuntu 18.04), your `initdb_locale` should be set to the
+same as the template database [GH-555](https://github.com/sous-chefs/postgresql/issues/555).
+
+### postgresql_server_conf
+
+This resource manages postgresql.conf configuration file.
+
+#### Actions
+
+- `modify` - (default) Manager PostgreSQL configuration file (postgresql.conf)
+
+#### Properties
+
+Name                   | Types   | Description                             | Default                                             | Required?
+---------------------- | ------- | --------------------------------------- | --------------------------------------------------- | ---------
+`version`              | String  | Version of PostgreSQL to install        | '9.6'                                               | no
+`data_directory`       | String  | Path of PostgreSQL data directory       | `<default_os_data_path>`                            | no
+`hba_file`             | String  | Path of pg_hba.conf file                | `<default_os_conf_path>/pg_hba.conf`                | no
+`ident_file`           | String  | Path of pg_ident.conf file              | `<default_os_conf_path>/pg_ident.conf`              | no
+`external_pid_file`    | String  | Path of PID file                        | `/var/run/postgresql/<postgresql_version>-main.pid` | no
+`stats_temp_directory` | String  | Path of stats file                      | `/var/run/postgresql/version>-main.pg_stat_tmp`     | no
+`port`                 | Integer | Set listen port of PostgreSQL service   | 5432                                                | no
+`additional_config`    | Hash    | Extra configuration for the config file | {}                                                  | no
+
+#### Examples
+
+To setup your PostgreSQL configuration with a specific data directory. If you have installed a specific version of PostgreSQL (different from 9.6), you must specify version in this resource too.
+
+```ruby
+postgresql_server_conf 'My PostgreSQL Config' do
+  version '9.5'
+  data_directory '/data/postgresql/9.5/main'
+  notifies :reload, 'service[postgresql]'
+end
+```
+
+### postgresql_extension
+
+This resource manages PostgreSQL extensions for a given database.
+
+#### Actions
+
+- `create` - (default) Creates an extension in a given database
+- `drop` - Drops an extension from the database
+
+#### Properties
+
+Name          | Types  | Description                                                                      | Default          | Required?
+------------- | ------ | -------------------------------------------------------------------------------- | ---------------- | ---------
+`database`    | String | Name of the database to install the extension into                               |                  | yes
+`extension`   | String | Name of the extension to install the database                                    | Name of resource | yes
+`version`     | String | Version of the extension to install                                              |                  | no
+`old_version` | String | Older module name for new extension replacement. Appends FROM to extension query |                  | no
+
+#### Examples
+
+To install the `adminpack` extension:
+
+```ruby
+# Add the contrib package in Ubuntu/Debian
+package 'postgresql-contrib-9.6'
+
+# Install adminpack extension
+postgresql_extension 'postgres adminpack' do
+  database 'postgres'
+  extension 'adminpack'
+end
+```
+
+### postgresql_access
+
+This resource uses the accumulator pattern to build up the `pg_hba.conf` file via chef resources instead of piling on a mountain of chef attributes to make this cookbook more reusable. It directly mirrors the configuration options of the postgres hba file in the resource and by default notifies the server with a reload to avoid a full restart, causing a potential outage of service. To revoke access, simply remove the resource and the access change won't be computed into the final `pg_hba.conf`
+
+#### Actions
+
+- `grant` - (default) Creates an access line inside of `pg_hba.conf`
+
+#### Properties
+
+Name            | Types  | Description                                                                               | Default           | Required?
+--------------- | ------ | ----------------------------------------------------------------------------------------- | ----------------- | ---------
+`name`          | String | Name of the access resource, this is left as a comment inside the `pg_hba` config         | Resource name     | yes
+`source`        | String | The cookbook template filename if you want to use your own custom template                | 'pg_hba.conf.erb' | yes
+`cookbook`      | String | The cookbook to look in for the template source                                           | 'postgresql'      | yes
+`comment`       | String | A comment to leave above the entry in `pg_hba`                                            | nil               | no
+`access_type`   | String | The type of access, e.g. local or host                                                    | 'local'           | yes
+`access_db`     | String | The database to access. Can use 'all' for all databases                                   | 'all'             | yes
+`access_user`   | String | The user accessing the database. Can use 'all' for any user                               | 'all'             | yes
+`access_addr`   | String | The address(es) allowed access. Can be nil if method ident is used since it is local then | nil               | no
+`access_method` | String | Authentication method to use                                                              | 'ident'           | yes
+
+#### Examples
+
+To grant access to the PostgreSQL user with ident authentication:
+
+```ruby
+postgresql_access 'local_postgres_superuser' do
+  comment 'Local postgres superuser access'
+  access_type 'local'
+  access_db 'all'
+  access_user 'postgres'
+  access_addr nil
+  access_method 'ident'
+end
+```
+
+This generates the following line in the `pg_hba.conf`:
+
+```config
+# Local postgres superuser access
+local   all             postgres                                ident
+```
+
+**Note**: The template by default generates a local access for Unix domain sockets only to support running the SQL execute resources. In Postgres version 9.1 and higher, the method is 'peer' instead of 'ident' which is identical. It looks like this:
+
+```config
+# "local" is for Unix domain socket connections only
+local   all             all                                     peer
+```
+
+### postgresql_ident
+
+This resource generate `pg_ident.conf` configuration file to manage user mapping between system and PostgreSQL users.
+
+#### Actions
+
+- `create` - (default) Creates an mapping line inside of `pg_ident.conf`
+
+#### Properties
+
+Name           | Types       | Description                                                                | Default             | Required?
+-------------- | ----------- | -------------------------------------------------------------------------- | ------------------- | ---------
+`mapname`      | String      | Name of the user mapping                                                   | Resource name       | yes
+`source`       | String      | The cookbook template filename if you want to use your own custom template | 'pg_ident.conf.erb' | no
+`cookbook`     | String      | The cookbook to look in for the template source                            | 'postgresql'        | no
+`comment`      | String, nil | A comment to leave above the entry in `pg_ident`                           | nil                 | no
+`system_user`  | String      | System user or regexp used for the mapping                                 | None                | yes
+`pg_user`      | String      | Pg user or regexp used for the mapping                                     | None                | yes
+
+#### Examples
+
+Creates a `mymapping` mapping that map `john` system user to `user1` PostgreSQL user:
+
+```ruby
+postgresql_ident 'Map john to user1' do
+  comment 'John Mapping'
+  mapname 'mymapping'
+  system_user 'john'
+  pg_user 'user1'
+end
+```
+
+This generates the following line in the `pg_ident.conf`:
+
+```config
+# MAPNAME       SYSTEM-USERNAME         PG-USERNAME
+
+# John Mapping
+mymapping       john                    user1
+```
+
+To grant access to the foo user with password authentication:
+
+```ruby
+postgresql_access 'local_foo_user' do
+  comment 'Foo user access'
+  access_type 'host'
+  access_db 'all'
+  access_user 'foo'
+  access_addr '127.0.0.1/32'
+  access_method 'md5'
+end
+```
+
+This generates the following line in the `pg_hba.conf`:
+
+```config
+# Local postgres superuser access
+host   all             foo               127.0.0.1/32           ident
+```
+
+### postgresql_database
+
+This resource manages PostgreSQL databases.
+
+#### Actions
+
+- `create` - (default) Creates the given database.
+- `drop` - Drops the given database.
+
+#### Properties
+
+Name       | Types   | Description                                                         | Default             | Required?
+---------- | ------- | ------------------------------------------------------------------- | ------------------- | ---------
+`database` | String  | Name of the database to create                                      | Resource name       | yes
+`user`     | String  | User which run psql command                                         | 'postgres'          | no
+`template` | String  | Template used to create the new database                            | 'template1'         | no
+`host`     | String  | Define the host server where the database creation will be executed | Not set (localhost) | no
+`port`     | Integer | Define the port of PostgreSQL server                                | 5432                | no
+`encoding` | String  | Define database encoding                                            | 'UTF-8'             | no
+`locale`   | String  | Define database locale                                              | 'en_US.UTF-8'       | no
+`owner`    | String  | Define the owner of the database                                    | Not set             | no
+
+#### Examples
+
+To create database named 'my_app' with owner 'user1':
+
+```ruby
+postgresql_database 'my_app' do
+  owner 'user1'
+end
+```
+
+#### Known issues
+
+On some platforms (e.g. Ubuntu 18.04), your `initdb_locale` should be set to the
+same as the template database [GH-555](https://github.com/sous-chefs/postgresql/issues/555).
+
+### postgresql_user
+
+This resource manage PostgreSQL users.
+
+#### Actions
+
+- `create` - (default) Creates the given user with default or given privileges.
+- `update` - Update user privilieges.
+- `drop` - Deletes the given user.
+
+#### Properties
+
+Name                 | Types   | Description                                     | Default  | Required?
+-------------------- | ------- | ----------------------------------------------- | -------- | ---------
+`create_user`        | String  | User to create (defaults to the resource name)  |          | Yes
+`superuser`          | Boolean | Define if user needs superuser role             | false    | no
+`createdb`           | Boolean | Define if user needs createdb role              | false    | no
+`createrole`         | Boolean | Define if user needs createrole role            | false    | no
+`inherit`            | Boolean | Define if user inherits the privileges of roles | true     | no
+`replication`        | Boolean | Define if user needs replication role           | false    | no
+`login`              | Boolean | Define if user can login                        | true     | no
+`password`           | String  | Set user's password                             |          | no
+`encrypted_password` | String  | Set user's password with an hashed password     |          | no
+`valid_until`        | String  | Define an account expiration date               |          | no
+`attributes`         | Hash    | Additional attributes for :update action        | {}       | no
+`user`               | String  | User for command                                | postgres | no
+`database`           | String  | Database for command                            |          | no
+`host`               | String  | Hostname for command                            |          | no
+`port`               | Integer | Port number to connect to postgres              | 5432     | no
+
+#### Examples
+
+Create a user `user1` with a password, with `createdb` role and set an expiration date to 2018, Dec 21.
+
+```ruby
+postgresql_user 'user1' do
+  password 'UserP4ssword'
+  createdb true
+  valid_until '2018-12-31'
+end
+```
+
+Create a user `user1` with a password, with `createdb` role and set an expiration date to 2018, Dec 21.
+
+```ruby
+postgresql_user 'user1' do
+  password 'UserP4ssword'
+  createdb true
+  valid_until '2018-12-31'
+end
+```
+
+## Usage
+
+To install and configure your PostgreSQL instance you need to create your own cookbook and call needed resources with your own parameters.
+
+More examples can be found in `test/cookbooks/test/recipes`
+
+## Example Usage
+
+```ruby
+# cookbooks/my_postgresql/recipes/default.rb
+
+postgresql_client_install 'PostgreSQL Client' do
+  setup_repo false
+  version '10.6'
+end
+
+postgresql_server_install 'PostgreSQL Server' do
+  version '10.6'
+  setup_repo false
+  password 'P0stgresP4ssword'
+end
+
+postgresql_server_conf 'PostgreSQL Config' do
+  notifies :reload, 'service[postgresql]'
+end
+```
+
+## Contributors
+
+This project exists thanks to all the people who [contribute.](https://opencollective.com/sous-chefs/contributors.svg?width=890&button=false)
+
+### Backers
+
+Thank you to all our backers!
+
+![https://opencollective.com/sous-chefs#backers](https://opencollective.com/sous-chefs/backers.svg?width=600&avatarHeight=40)
+
+### Sponsors
+
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website.
+
+![https://opencollective.com/sous-chefs/sponsor/0/website](https://opencollective.com/sous-chefs/sponsor/0/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/1/website](https://opencollective.com/sous-chefs/sponsor/1/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/2/website](https://opencollective.com/sous-chefs/sponsor/2/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/3/website](https://opencollective.com/sous-chefs/sponsor/3/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/4/website](https://opencollective.com/sous-chefs/sponsor/4/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/5/website](https://opencollective.com/sous-chefs/sponsor/5/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/6/website](https://opencollective.com/sous-chefs/sponsor/6/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/7/website](https://opencollective.com/sous-chefs/sponsor/7/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/8/website](https://opencollective.com/sous-chefs/sponsor/8/avatar.svg?avatarHeight=100)
+![https://opencollective.com/sous-chefs/sponsor/9/website](https://opencollective.com/sous-chefs/sponsor/9/avatar.svg?avatarHeight=100)

@@ -1,28 +1,14 @@
-name              "postgresql"
-maintainer        "Heavy Water Operations, LLC"
-maintainer_email  "support@hw-ops.com"
-license           "Apache 2.0"
-description       "Installs and configures postgresql for clients or servers"
-long_description  IO.read(File.join(File.dirname(__FILE__), 'README.md'))
-version           "3.4.11"
-recipe            "postgresql", "Includes postgresql::client"
-recipe            "postgresql::ruby", "Installs pg gem for Ruby bindings"
-recipe            "postgresql::client", "Installs postgresql client package(s)"
-recipe            "postgresql::server", "Installs postgresql server packages, templates"
-recipe            "postgresql::server_redhat", "Installs postgresql server packages, redhat family style"
-recipe            "postgresql::server_debian", "Installs postgresql server packages, debian family style"
+# frozen_string_literal: true
+name              'postgresql'
+maintainer        'Sous Chefs'
+maintainer_email  'help@sous-chefs.org'
+license           'Apache-2.0'
+description       'Installs and configures postgresql for clients or servers'
+version           '7.1.9'
+source_url        'https://github.com/sous-chefs/postgresql'
+issues_url        'https://github.com/sous-chefs/postgresql/issues'
+chef_version      '>= 13.8'
 
-
-supports "ubuntu", "< 14.04"
-
-%w{debian fedora suse amazon}.each do |os|
+%w(ubuntu debian fedora amazon redhat centos scientific oracle).each do |os|
   supports os
 end
-
-%w{redhat centos scientific oracle}.each do |el|
-  supports el, "~> 6.0"
-end
-
-depends "apt", ">= 1.9.0"
-depends "build-essential"
-depends "openssl"
