@@ -27,7 +27,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         database.vm.provision :chef_solo do |chef|
             chef.arguments = "--chef-license accept"
             chef.cookbooks_path = File.join(File.dirname(__FILE__), 'cookbooks')
-            chef.add_recipe "postgresql::server"
+            chef.add_recipe "vagrant-postgresql::default"
             chef.json = read_user_json
         end
     end
