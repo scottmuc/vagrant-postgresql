@@ -1,5 +1,9 @@
 # Postgresql database server whenever you need one
 
+```diff
+- this project is no longer mainained. Docker is probably a better option nowadays
+```
+
 ## Dependencies
 
 You'll need to have the following tools installed for this to work
